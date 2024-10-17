@@ -1,18 +1,18 @@
 #include "Head.h"
 
-arr<string> readSchema(const string& filePath) {// функция возвращающая массив с данными из json файла
+arr<string> readSchema(const string& filePath) {// С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‰Р°СЋС‰Р°СЏ РјР°СЃСЃРёРІ СЃ РґР°РЅРЅС‹РјРё РёР· json С„Р°Р№Р»Р°
 
     json schema;
 
     ifstream file(filePath);
-    if (file.is_open()) {// читаем json файл
+    if (file.is_open()) {// С‡РёС‚Р°РµРј json С„Р°Р№Р»
         file >> schema;
         file.close();
     }
     else {
-        cerr << "Не удалось открыть файл: " << filePath << endl;
+        cerr << "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ С„Р°Р№Р»: " << filePath << endl;
     }
-    arr<string> jsonSettings;// заполняем массив прочитанными данными
+    arr<string> jsonSettings;// Р·Р°РїРѕР»РЅСЏРµРј РјР°СЃСЃРёРІ РїСЂРѕС‡РёС‚Р°РЅРЅС‹РјРё РґР°РЅРЅС‹РјРё
 
     jsonSettings.push_back(schema["name"]);
     jsonSettings.push_back(",");
@@ -20,7 +20,7 @@ arr<string> readSchema(const string& filePath) {// функция возвращающая массив с
     jsonSettings.push_back(toStr(schema["tuples_limit"]));
     jsonSettings.push_back(",");
     
-    for (json::iterator it = schema["structure"].begin(); it != schema["structure"].end(); ++it) {// цикл заполняющий название таблиц и колонок в массив 
+    for (json::iterator it = schema["structure"].begin(); it != schema["structure"].end(); ++it) {// С†РёРєР» Р·Р°РїРѕР»РЅСЏСЋС‰РёР№ РЅР°Р·РІР°РЅРёРµ С‚Р°Р±Р»РёС† Рё РєРѕР»РѕРЅРѕРє РІ РјР°СЃСЃРёРІ 
         jsonSettings.push_back(it.key());
 
         for (auto temp : schema["structure"][it.key()]) {
@@ -32,20 +32,20 @@ arr<string> readSchema(const string& filePath) {// функция возвращающая массив с
     return jsonSettings;
 }
 
-void request() {// функция которая определяет запрос и далее вызывает нужную функцию
+void request() {// С„СѓРЅРєС†РёСЏ РєРѕС‚РѕСЂР°СЏ РѕРїСЂРµРґРµР»СЏРµС‚ Р·Р°РїСЂРѕСЃ Рё РґР°Р»РµРµ РІС‹Р·С‹РІР°РµС‚ РЅСѓР¶РЅСѓСЋ С„СѓРЅРєС†РёСЋ
 
-    arr<string> path = createCSV();// создаются все файлы и возвращаются все пути до нужных csv файлов(подходящих под условие)
+    arr<string> path = createCSV();// СЃРѕР·РґР°СЋС‚СЃСЏ РІСЃРµ С„Р°Р№Р»С‹ Рё РІРѕР·РІСЂР°С‰Р°СЋС‚СЃСЏ РІСЃРµ РїСѓС‚Рё РґРѕ РЅСѓР¶РЅС‹С… csv С„Р°Р№Р»РѕРІ(РїРѕРґС…РѕРґСЏС‰РёС… РїРѕРґ СѓСЃР»РѕРІРёРµ)
     cout << "< ";
     string tempRequest;
     getline(cin, tempRequest);
-    arr<string> commandWords = splitString(" ", tempRequest);// сплитим запрос по пробелам, для дальнейшего определения команды
+    arr<string> commandWords = splitString(" ", tempRequest);// СЃРїР»РёС‚РёРј Р·Р°РїСЂРѕСЃ РїРѕ РїСЂРѕР±РµР»Р°Рј, РґР»СЏ РґР°Р»СЊРЅРµР№С€РµРіРѕ РѕРїСЂРµРґРµР»РµРЅРёСЏ РєРѕРјР°РЅРґС‹
 
 
-    if (commandWords.pointer[0] == "SELECT" && commandWords.pointer[2] == "FROM" && commandWords.pointer[4] == "WHERE") {// если селект с фильтром
+    if (commandWords.pointer[0] == "SELECT" && commandWords.pointer[2] == "FROM" && commandWords.pointer[4] == "WHERE") {// РµСЃР»Рё СЃРµР»РµРєС‚ СЃ С„РёР»СЊС‚СЂРѕРј
         try {
 
             string whereRequest = "";
-            for (int i = 5; i < commandWords.currSize; i++) {// записываем фильтр в строку
+            for (int i = 5; i < commandWords.currSize; i++) {// Р·Р°РїРёСЃС‹РІР°РµРј С„РёР»СЊС‚СЂ РІ СЃС‚СЂРѕРєСѓ
                 whereRequest += commandWords.pointer[i] + " ";
             }
             SelectWhere(commandWords.pointer[3], commandWords.pointer[1], path, whereRequest);
@@ -54,7 +54,7 @@ void request() {// функция которая определяет запрос и далее вызывает нужную фун
             cerr << error.what() << endl;
         }
     }
-    else if (commandWords.pointer[0] == "SELECT" && commandWords.pointer[2] == "FROM"){// если обычный селект
+    else if (commandWords.pointer[0] == "SELECT" && commandWords.pointer[2] == "FROM"){// РµСЃР»Рё РѕР±С‹С‡РЅС‹Р№ СЃРµР»РµРєС‚
         try {
 
             Select(commandWords.pointer[3], commandWords.pointer[1], path);
@@ -64,12 +64,12 @@ void request() {// функция которая определяет запрос и далее вызывает нужную фун
             cerr << error.what() << endl;
         }
     }
-    else if (commandWords.pointer[0] == "INSERT" && commandWords.pointer[1] == "INTO" && commandWords.pointer[3] == "VALUES" ){ // если инсерт
+    else if (commandWords.pointer[0] == "INSERT" && commandWords.pointer[1] == "INTO" && commandWords.pointer[3] == "VALUES" ){ // РµСЃР»Рё РёРЅСЃРµСЂС‚
         try {
             arr<string> data;
-            arr<string> temp = splitString("'", tempRequest);// сплитим запрос по ' , чтобы определить данные для инсерта
+            arr<string> temp = splitString("'", tempRequest);// СЃРїР»РёС‚РёРј Р·Р°РїСЂРѕСЃ РїРѕ ' , С‡С‚РѕР±С‹ РѕРїСЂРµРґРµР»РёС‚СЊ РґР°РЅРЅС‹Рµ РґР»СЏ РёРЅСЃРµСЂС‚Р°
 
-            for (int i = 0; i < temp.currSize; i++) {// данные для инсерта находятся по индексам с нечетным значением
+            for (int i = 0; i < temp.currSize; i++) {// РґР°РЅРЅС‹Рµ РґР»СЏ РёРЅСЃРµСЂС‚Р° РЅР°С…РѕРґСЏС‚СЃСЏ РїРѕ РёРЅРґРµРєСЃР°Рј СЃ РЅРµС‡РµС‚РЅС‹Рј Р·РЅР°С‡РµРЅРёРµРј
                 if (i % 2 == 1) {
                     data.push_back(temp.pointer[i]);
                 }
@@ -81,12 +81,12 @@ void request() {// функция которая определяет запрос и далее вызывает нужную фун
             cerr << error.what() << endl;
         }
     }
-    else if (commandWords.pointer[0] == "DELETE" && commandWords.pointer[1] == "FROM" && commandWords.pointer[3] == "WHERE" && commandWords.pointer[5] == "=") {// если делит
+    else if (commandWords.pointer[0] == "DELETE" && commandWords.pointer[1] == "FROM" && commandWords.pointer[3] == "WHERE" && commandWords.pointer[5] == "=") {// РµСЃР»Рё РґРµР»РёС‚
         try {
-            string table = commandWords.pointer[2]; // определяем таблицу для работы
-            string dataFrom = commandWords.pointer[4]; // колонку для фильтра
+            string table = commandWords.pointer[2]; // РѕРїСЂРµРґРµР»СЏРµРј С‚Р°Р±Р»РёС†Сѓ РґР»СЏ СЂР°Р±РѕС‚С‹
+            string dataFrom = commandWords.pointer[4]; // РєРѕР»РѕРЅРєСѓ РґР»СЏ С„РёР»СЊС‚СЂР°
             
-            string filter = splitString("'", tempRequest).pointer[1];// определяем фильтр для удаления
+            string filter = splitString("'", tempRequest).pointer[1];// РѕРїСЂРµРґРµР»СЏРµРј С„РёР»СЊС‚СЂ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ
             Delete(table, dataFrom, filter, path);
             cout << "Delete complete" << endl;
         }
@@ -94,7 +94,7 @@ void request() {// функция которая определяет запрос и далее вызывает нужную фун
             cerr << error.what() << endl;
         }
     }
-    else if (commandWords.pointer[0] == "EXIT") {// если написать EXIT, то выход из программы
+    else if (commandWords.pointer[0] == "EXIT") {// РµСЃР»Рё РЅР°РїРёСЃР°С‚СЊ EXIT, С‚Рѕ РІС‹С…РѕРґ РёР· РїСЂРѕРіСЂР°РјРјС‹
         exit(1);
     }
     else {

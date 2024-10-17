@@ -1,57 +1,38 @@
 #include "Head.h"
 
-
-string tablenameToPath(const string& table, const arr<string>& paths) {// функция которая определяет путь до нужного csv файла по названию таблицы
-
-	string correctPath;
-	arr<string> tempArray;
-	for (int i = 0; i < paths.currSize; i++) {// проходим по всем путям
-
-		tempArray = splitString("/", paths.pointer[i]); // сплитим по "/"
-
-		for (int j = 0; j < tempArray.currSize; j++) {//если название таблицы совпадает то выводим путь
-			if (table == tempArray.pointer[j]) {
-				correctPath = paths.pointer[i];
-				return correctPath;
-			}
-		}
-	}
-}
-
-
 void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 
 	
-	const int tuple_limit = toInt(readSchema("schema.json").pointer[2]);// Считываем данные с файла json
+	const int tuple_limit = toInt(readSchema("schema.json").pointer[2]);// РЎС‡РёС‚С‹РІР°РµРј РґР°РЅРЅС‹Рµ СЃ С„Р°Р№Р»Р° json
 	string correctPath = tablenameToPath(table, paths);
 	string nameSchema = readSchema("schema.json").pointer[0];
 
 	string tempString, pk;
-	ifstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");//проверка на блокировку файла
+	ifstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");//РїСЂРѕРІРµСЂРєР° РЅР° Р±Р»РѕРєРёСЂРѕРІРєСѓ С„Р°Р№Р»Р°
 	getline(lockFile, tempString);
 	lockFile.close();
 
-	if (tempString == "0") {// если разблокирован файл, то начинаем работу с ним
+	if (tempString == "0") {// РµСЃР»Рё СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ С„Р°Р№Р», С‚Рѕ РЅР°С‡РёРЅР°РµРј СЂР°Р±РѕС‚Сѓ СЃ РЅРёРј
 		
-		ofstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// блокировка файла
+		ofstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// Р±Р»РѕРєРёСЂРѕРІРєР° С„Р°Р№Р»Р°
 		lockFile << "1";
 		lockFile.close();
 		string line;
-		ifstream file(correctPath);//читаем первую строчку
+		ifstream file(correctPath);//С‡РёС‚Р°РµРј РїРµСЂРІСѓСЋ СЃС‚СЂРѕС‡РєСѓ
 		if (file.is_open()) {
 			getline(file, line);
 			file.close();
 		}
-		arr<string> maxColums = splitString(",", line);//сплитим строчкуу по , и можем обратиться к её размеру
+		arr<string> maxColums = splitString(",", line);//СЃРїР»РёС‚РёРј СЃС‚СЂРѕС‡РєСѓСѓ РїРѕ , Рё РјРѕР¶РµРј РѕР±СЂР°С‚РёС‚СЊСЃСЏ Рє РµС‘ СЂР°Р·РјРµСЂСѓ
 
-		if (maxColums.currSize - 1 == data.currSize) {// если кол-во данных в запросе равняется максимальному кол-ву данных в строке файла
+		if (maxColums.currSize - 1 == data.currSize) {// РµСЃР»Рё РєРѕР»-РІРѕ РґР°РЅРЅС‹С… РІ Р·Р°РїСЂРѕСЃРµ СЂР°РІРЅСЏРµС‚СЃСЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕРјСѓ РєРѕР»-РІСѓ РґР°РЅРЅС‹С… РІ СЃС‚СЂРѕРєРµ С„Р°Р№Р»Р°
 			
-			ifstream pkCount(nameSchema + '/' + table + '/' + table + "_pk_sequence.txt");//Находим номер строчки
+			ifstream pkCount(nameSchema + '/' + table + '/' + table + "_pk_sequence.txt");//РќР°С…РѕРґРёРј РЅРѕРјРµСЂ СЃС‚СЂРѕС‡РєРё
 			getline(pkCount, pk);
 			pkCount.close();
 
 			
-			ofstream file(correctPath, ios::ate | ios::app);//записываем номер строчки и данные
+			ofstream file(correctPath, ios::ate | ios::app);//Р·Р°РїРёСЃС‹РІР°РµРј РЅРѕРјРµСЂ СЃС‚СЂРѕС‡РєРё Рё РґР°РЅРЅС‹Рµ
 			file << pk << ",";
 			for (int j = 0; j < data.currSize; j++) {
 				file << data.pointer[j];
@@ -66,17 +47,17 @@ void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 			cerr << "Incorrect number of elements" << endl;
 		}
 		
-		ofstream unlockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// разблокирование файла
+		ofstream unlockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅРёРµ С„Р°Р№Р»Р°
 		unlockFile << "0";
 		unlockFile.close();
 
-		ofstream pkFileRecord(nameSchema + '/' + table + '/' + table + "_pk_sequence.txt");//инкрементируем pk и записываем в файл
+		ofstream pkFileRecord(nameSchema + '/' + table + '/' + table + "_pk_sequence.txt");//РёРЅРєСЂРµРјРµРЅС‚РёСЂСѓРµРј pk Рё Р·Р°РїРёСЃС‹РІР°РµРј РІ С„Р°Р№Р»
 		pkFileRecord << toInt(pk) + 1;
 		pkFileRecord.close();
 
 
 	}
-	else if (tempString == "1") {//если над файлом уже работают, то выходим
+	else if (tempString == "1") {//РµСЃР»Рё РЅР°Рґ С„Р°Р№Р»РѕРј СѓР¶Рµ СЂР°Р±РѕС‚Р°СЋС‚, С‚Рѕ РІС‹С…РѕРґРёРј
 		
 		cerr << "File already is open. Try again letter." << endl;
 	}
@@ -85,32 +66,32 @@ void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 
 void Select(string& fromTable, string SelectData, const arr<string>& paths) {
 
-	arr<string> allChose = splitString(",", SelectData);// заспличен запрос 
+	arr<string> allChose = splitString(",", SelectData);// Р·Р°СЃРїР»РёС‡РµРЅ Р·Р°РїСЂРѕСЃ 
 	arr<string> temp;
 	arr<string> empty;
 	arr<string> splitedChose;
 
-	for (int i = 0; i < allChose.currSize; i++) {// на выходе получаем массив таблица , колонка ; след запрос тааблица , колонка 
+	for (int i = 0; i < allChose.currSize; i++) {// РЅР° РІС‹С…РѕРґРµ РїРѕР»СѓС‡Р°РµРј РјР°СЃСЃРёРІ С‚Р°Р±Р»РёС†Р° , РєРѕР»РѕРЅРєР° ; СЃР»РµРґ Р·Р°РїСЂРѕСЃ С‚Р°Р°Р±Р»РёС†Р° , РєРѕР»РѕРЅРєР° 
 		temp = splitString(".", allChose.pointer[i]);
 		for (int j = 0; j < temp.currSize; j++) {
 			splitedChose.push_back(temp.pointer[j]);
 		}
 
 	}
-	temp = empty;//очистка массива
+	temp = empty;//РѕС‡РёСЃС‚РєР° РјР°СЃСЃРёРІР°
 	int numColumn, count;
 	string currentPath, column, stringFromFile;
-	arr<string> tables = splitString(",", fromTable);// массив с названиями таблиц в которых работаем
+	arr<string> tables = splitString(",", fromTable);// РјР°СЃСЃРёРІ СЃ РЅР°Р·РІР°РЅРёСЏРјРё С‚Р°Р±Р»РёС† РІ РєРѕС‚РѕСЂС‹С… СЂР°Р±РѕС‚Р°РµРј
 	for (int i = 0; i < tables.currSize; i++) {
 
-		currentPath = tablenameToPath(tables.pointer[i], paths);//определяем путь до .csv файла по азванию таблицы 
+		currentPath = tablenameToPath(tables.pointer[i], paths);//РѕРїСЂРµРґРµР»СЏРµРј РїСѓС‚СЊ РґРѕ .csv С„Р°Р№Р»Р° РїРѕ Р°Р·РІР°РЅРёСЋ С‚Р°Р±Р»РёС†С‹ 
 
 
 		for (int j = 0; j < splitedChose.currSize; j++) {
 			count = 0;
-			if (tables.pointer[i] == splitedChose.pointer[j]) {// если название таблицы совпадает, то следующий элемент в массиве это колонка к которой обращаемся
+			if (tables.pointer[i] == splitedChose.pointer[j]) {// РµСЃР»Рё РЅР°Р·РІР°РЅРёРµ С‚Р°Р±Р»РёС†С‹ СЃРѕРІРїР°РґР°РµС‚, С‚Рѕ СЃР»РµРґСѓСЋС‰РёР№ СЌР»РµРјРµРЅС‚ РІ РјР°СЃСЃРёРІРµ СЌС‚Рѕ РєРѕР»РѕРЅРєР° Рє РєРѕС‚РѕСЂРѕР№ РѕР±СЂР°С‰Р°РµРјСЃСЏ
 				column = splitedChose.pointer[j + 1];
-				numColumn = column[column.size() - 1] - 48;// находим номер колонки к которой обращаемся
+				numColumn = column[column.size() - 1] - 48;// РЅР°С…РѕРґРёРј РЅРѕРјРµСЂ РєРѕР»РѕРЅРєРё Рє РєРѕС‚РѕСЂРѕР№ РѕР±СЂР°С‰Р°РµРјСЃСЏ
 
 			}
 			else {
@@ -120,21 +101,21 @@ void Select(string& fromTable, string SelectData, const arr<string>& paths) {
 			ifstream file(currentPath);
 
 			if (file.is_open()) {
-				while (getline(file, stringFromFile)) {// считываем строчку
-					if (file.eof()) {// если конец файла то выходим
+				while (getline(file, stringFromFile)) {// СЃС‡РёС‚С‹РІР°РµРј СЃС‚СЂРѕС‡РєСѓ
+					if (file.eof()) {// РµСЃР»Рё РєРѕРЅРµС† С„Р°Р№Р»Р° С‚Рѕ РІС‹С…РѕРґРёРј
 						file.close();
 						break;
 					}
-					if (count == 0) {//если строчка первая в файле то пропускаем
+					if (count == 0) {//РµСЃР»Рё СЃС‚СЂРѕС‡РєР° РїРµСЂРІР°СЏ РІ С„Р°Р№Р»Рµ С‚Рѕ РїСЂРѕРїСѓСЃРєР°РµРј
 						count++;
 						continue;
 					}
-					else {//добавляем в массив номер строчки и элемент строчки находящийся в нужной колонке через запятую
+					else {//РґРѕР±Р°РІР»СЏРµРј РІ РјР°СЃСЃРёРІ РЅРѕРјРµСЂ СЃС‚СЂРѕС‡РєРё Рё СЌР»РµРјРµРЅС‚ СЃС‚СЂРѕС‡РєРё РЅР°С…РѕРґСЏС‰РёР№СЃСЏ РІ РЅСѓР¶РЅРѕР№ РєРѕР»РѕРЅРєРµ С‡РµСЂРµР· Р·Р°РїСЏС‚СѓСЋ
 						temp.push_back(splitString(",", stringFromFile).pointer[0] + "," + splitString(",", stringFromFile).pointer[numColumn]);
 					}
 
 				}
-				temp.push_back(",");// ставим запятую, что ограничивает данные взятые по 1 запросу
+				temp.push_back(",");// СЃС‚Р°РІРёРј Р·Р°РїСЏС‚СѓСЋ, С‡С‚Рѕ РѕРіСЂР°РЅРёС‡РёРІР°РµС‚ РґР°РЅРЅС‹Рµ РІР·СЏС‚С‹Рµ РїРѕ 1 Р·Р°РїСЂРѕСЃСѓ
 			}
 
 
@@ -142,15 +123,15 @@ void Select(string& fromTable, string SelectData, const arr<string>& paths) {
 	}
 
 	arr<string> indexTemp;
-	for (int i = 0; i < temp.currSize; i++) {// заполняем массив с индексами окончания данных одного запроса
+	for (int i = 0; i < temp.currSize; i++) {// Р·Р°РїРѕР»РЅСЏРµРј РјР°СЃСЃРёРІ СЃ РёРЅРґРµРєСЃР°РјРё РѕРєРѕРЅС‡Р°РЅРёСЏ РґР°РЅРЅС‹С… РѕРґРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР°
 		if (temp.pointer[i] == ",") {
 			indexTemp.push_back(toStr(i));
 		}
 	}
 	arr<string> left, right;
 
-	for (int i = 0; i < toInt(indexTemp.pointer[0]); i++) {//делаем вывод для двух колонок
-		for (int j = toInt(indexTemp.pointer[0]) + 1; j < toInt(indexTemp.pointer[1]); j++) {//проходит по первой колонке
+	for (int i = 0; i < toInt(indexTemp.pointer[0]); i++) {//РґРµР»Р°РµРј РІС‹РІРѕРґ РґР»СЏ РґРІСѓС… РєРѕР»РѕРЅРѕРє
+		for (int j = toInt(indexTemp.pointer[0]) + 1; j < toInt(indexTemp.pointer[1]); j++) {//РїСЂРѕС…РѕРґРёС‚ РїРѕ РїРµСЂРІРѕР№ РєРѕР»РѕРЅРєРµ
 			left = splitString(",", temp.pointer[i]);
 			right = splitString(",", temp.pointer[j]);
 			cout << " \t" << left.pointer[0] << "   " << left.pointer[1] << " \t" << right.pointer[0] << "   " << right.pointer[1] << endl;
@@ -161,25 +142,25 @@ void Select(string& fromTable, string SelectData, const arr<string>& paths) {
 //SELECT table2.column1,table2.column2 FROM table2
 
 void Delete(const string& table,const string& dataFrom,const string& filter,const arr<string>& path) {
-	string currentPath = tablenameToPath(table, path);// определяем путь до файла над которым работаем
+	string currentPath = tablenameToPath(table, path);// РѕРїСЂРµРґРµР»СЏРµРј РїСѓС‚СЊ РґРѕ С„Р°Р№Р»Р° РЅР°Рґ РєРѕС‚РѕСЂС‹Рј СЂР°Р±РѕС‚Р°РµРј
 
-	string nameSchema = readSchema("schema.json").pointer[0];// определяем имя схемы
+	string nameSchema = readSchema("schema.json").pointer[0];// РѕРїСЂРµРґРµР»СЏРµРј РёРјСЏ СЃС…РµРјС‹
 	string tempString;
 
-	ifstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// получаем ключ блокировки
+	ifstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// РїРѕР»СѓС‡Р°РµРј РєР»СЋС‡ Р±Р»РѕРєРёСЂРѕРІРєРё
 	getline(lockFile, tempString);
 	lockFile.close();
 
-	if (tempString == "0") {// если разблокировано, то работаем
+	if (tempString == "0") {// РµСЃР»Рё СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅРѕ, С‚Рѕ СЂР°Р±РѕС‚Р°РµРј
 
-		ofstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");//блокируем файл
+		ofstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");//Р±Р»РѕРєРёСЂСѓРµРј С„Р°Р№Р»
 		lockFile << "1";
 		lockFile.close();
 
-		arr<string> whereDel = splitString(".", dataFrom);// определяем колонку для проверки
+		arr<string> whereDel = splitString(".", dataFrom);// РѕРїСЂРµРґРµР»СЏРµРј РєРѕР»РѕРЅРєСѓ РґР»СЏ РїСЂРѕРІРµСЂРєРё
 		string column;
 		int numColumn;
-		for (int i = 0; i < whereDel.currSize; i++) {// цикл определяющий индекс элемента нужной колонки
+		for (int i = 0; i < whereDel.currSize; i++) {// С†РёРєР» РѕРїСЂРµРґРµР»СЏСЋС‰РёР№ РёРЅРґРµРєСЃ СЌР»РµРјРµРЅС‚Р° РЅСѓР¶РЅРѕР№ РєРѕР»РѕРЅРєРё
 			if (table == whereDel.pointer[i]) {
 				column = whereDel.pointer[i + 1];
 				numColumn = column[column.size() - 1] - 48;
@@ -192,7 +173,7 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 		string stringFromFile, element;
 
 		fstream file(currentPath, ios::in | ios::out | ios::binary);
-		arr<string> buffer;//создаем буффер в который будем записывать все строчки которые не подходят под фильтр
+		arr<string> buffer;//СЃРѕР·РґР°РµРј Р±СѓС„С„РµСЂ РІ РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµРј Р·Р°РїРёСЃС‹РІР°С‚СЊ РІСЃРµ СЃС‚СЂРѕС‡РєРё РєРѕС‚РѕСЂС‹Рµ РЅРµ РїРѕРґС…РѕРґСЏС‚ РїРѕРґ С„РёР»СЊС‚СЂ
 		if (file.is_open()) {
 			while (getline(file, stringFromFile)) {
 				if (file.eof()) {
@@ -206,7 +187,7 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 				}
 
 				if (element != filter) {
-					buffer.push_back(stringFromFile);// на линуксе надо сделать с \n !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					buffer.push_back(stringFromFile);// РЅР° Р»РёРЅСѓРєСЃРµ РЅР°РґРѕ СЃРґРµР»Р°С‚СЊ СЃ \n !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				}
 
 			}
@@ -215,7 +196,7 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 		}
 
 		file.close();
-		if (!file.is_open()) { // записываем всё из буфера в файл с самого начала
+		if (!file.is_open()) { // Р·Р°РїРёСЃС‹РІР°РµРј РІСЃС‘ РёР· Р±СѓС„РµСЂР° РІ С„Р°Р№Р» СЃ СЃР°РјРѕРіРѕ РЅР°С‡Р°Р»Р°
 			ofstream file(currentPath);
 			file.seekp(0, ios::beg);
 			for (int i = 0; i < buffer.currSize; i++) {
@@ -225,11 +206,11 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 			file.close();
 		}
 
-		ofstream unlockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// разблокируем файл
+		ofstream unlockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// СЂР°Р·Р±Р»РѕРєРёСЂСѓРµРј С„Р°Р№Р»
 		unlockFile << "0";
 		unlockFile.close();
 	}
-	else if (tempString == "1"){// если заблокирован то выходим
+	else if (tempString == "1"){// РµСЃР»Рё Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ С‚Рѕ РІС‹С…РѕРґРёРј
 		
 		cout << "File already is open. Try again letter." << endl;
 	}
@@ -246,7 +227,7 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 
 	string modifiedString = "";
 	temp = splitString(" ", whereRequest);
-	for (int i = 0; i < temp.currSize; i++) {// заменяем AND и OR на символ "*"
+	for (int i = 0; i < temp.currSize; i++) {// Р·Р°РјРµРЅСЏРµРј AND Рё OR РЅР° СЃРёРјРІРѕР» "*"
 		if (temp.pointer[i] == "AND") {
 			temp.pointer[i] = "*";
 			andOr.push_back("AND");
@@ -257,9 +238,9 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 		}
 		modifiedString += temp.pointer[i];
 	}
-	// обработка сравнения
-	arr<string> compares = splitString("*", modifiedString);// разбиваем заменённую строку по *
-	// разбиваем на операнды
+	// РѕР±СЂР°Р±РѕС‚РєР° СЃСЂР°РІРЅРµРЅРёСЏ
+	arr<string> compares = splitString("*", modifiedString);// СЂР°Р·Р±РёРІР°РµРј Р·Р°РјРµРЅС‘РЅРЅСѓСЋ СЃС‚СЂРѕРєСѓ РїРѕ *
+	// СЂР°Р·Р±РёРІР°РµРј РЅР° РѕРїРµСЂР°РЅРґС‹
 	arr<string> indexToCompare, splitToCompare, columns;
 	
 	string column;
@@ -270,36 +251,37 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 	arr<string>  numbersString;
 	arr<string> comparedStr, comparedIndex;
 
+	string filtr;
 	comparedIndex.push_back(";");
 	comparedStr.push_back(";");
-	for (int i = 0; i < compares.currSize; i++) { // разбиваем подстроки по = 
+	for (int i = 0; i < compares.currSize; i++) { // СЂР°Р·Р±РёРІР°РµРј РїРѕРґСЃС‚СЂРѕРєРё РїРѕ = 
 		splitToCompare = splitString("=", compares.pointer[i]);
 
-		for (int j = 0; j < splitToCompare.currSize; j++) {// разбиваем подстроки по . для определения table и column 
+		for (int j = 0; j < splitToCompare.currSize; j++) {// СЂР°Р·Р±РёРІР°РµРј РїРѕРґСЃС‚СЂРѕРєРё РїРѕ . РґР»СЏ РѕРїСЂРµРґРµР»РµРЅРёСЏ table Рё column  
 
 			columns = splitString(".", splitToCompare.pointer[j]);
-			for (int k = 0; k < columns.currSize; k++) { // 2 цикла для определения названия таблицы,  совпадает ли оно с заданными после токена FROM
+			for (int k = 0; k < columns.currSize; k++) { // 2 С†РёРєР»Р° РґР»СЏ РѕРїСЂРµРґРµР»РµРЅРёСЏ РЅР°Р·РІР°РЅРёСЏ С‚Р°Р±Р»РёС†С‹,  СЃРѕРІРїР°РґР°РµС‚ Р»Рё РѕРЅРѕ СЃ Р·Р°РґР°РЅРЅС‹РјРё РїРѕСЃР»Рµ С‚РѕРєРµРЅР° FROM
 
 				for (int z = 0; z < tables.currSize; z++) {
 
-					if (columns.pointer[k] == tables.pointer[z]) {// если название таблицы совпадает то 
+					if (columns.pointer[k] == tables.pointer[z]) {// РµСЃР»Рё РЅР°Р·РІР°РЅРёРµ С‚Р°Р±Р»РёС†С‹ СЃРѕРІРїР°РґР°РµС‚ С‚Рѕ  
 						column = columns.pointer[k + 1];
-						numColumn = column[column.size() - 1] - 48;// считаем индекс колонки с нужными данными
+						numColumn = column[column.size() - 1] - 48;// СЃС‡РёС‚Р°РµРј РёРЅРґРµРєСЃ РєРѕР»РѕРЅРєРё СЃ РЅСѓР¶РЅС‹РјРё РґР°РЅРЅС‹РјРё
 
-						path = tablenameToPath(columns.pointer[k], paths);// определяем путь до файла
+						path = tablenameToPath(columns.pointer[k], paths);// РѕРїСЂРµРґРµР»СЏРµРј РїСѓС‚СЊ РґРѕ С„Р°Р№Р»Р°
 
 						ifstream file(path);
 
 						isFirst = true;
-						while (getline(file, line)) {// читаем строки файла
+						while (getline(file, line)) {// С‡РёС‚Р°РµРј СЃС‚СЂРѕРєРё С„Р°Р№Р»Р°
 							if (isFirst) {
-								isFirst = false; //если строка первая то выходим
+								isFirst = false; //РµСЃР»Рё СЃС‚СЂРѕРєР° РїРµСЂРІР°СЏ С‚Рѕ РІС‹С…РѕРґРёРј
 								continue;
 							}
-							splitedStr = splitString(",", line); // сплитим линию
-							numbersString.push_back(splitedStr.pointer[0]); // записываем номер
+							splitedStr = splitString(",", line); // СЃРїР»РёС‚РёРј Р»РёРЅРёСЋ
+							numbersString.push_back(splitedStr.pointer[0]); // Р·Р°РїРёСЃС‹РІР°РµРј РЅРѕРјРµСЂ
 
-							arrOperands.push_back(splitedStr.pointer[numColumn]);// записываем данные
+							arrOperands.push_back(splitedStr.pointer[numColumn]);// Р·Р°РїРёСЃС‹РІР°РµРј РґР°РЅРЅС‹Рµ
 						}
 						isFirst = true;
 
@@ -313,41 +295,41 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 
 		}
 
-		for (int j = 0; j < arrOperands.currSize / 2; j++) { // проверяем условие = для пар элементов выбранных колонок
-			if (arrOperands.pointer[j] == arrOperands.pointer[j + arrOperands.currSize / 2]) {// если они совпадают то добавляем эту пару в массив и номер строки в другой массив
+				for (int j = 0; j < arrOperands.currSize / 2; j++) { // РїСЂРѕРІРµСЂСЏРµРј СѓСЃР»РѕРІРёРµ = РґР»СЏ РїР°СЂ СЌР»РµРјРµРЅС‚РѕРІ РІС‹Р±СЂР°РЅРЅС‹С… РєРѕР»РѕРЅРѕРє
+			if (arrOperands.pointer[j] == arrOperands.pointer[j + arrOperands.currSize / 2]) {// РµСЃР»Рё РѕРЅРё СЃРѕРІРїР°РґР°СЋС‚ С‚Рѕ РґРѕР±Р°РІР»СЏРµРј СЌС‚Сѓ РїР°СЂСѓ РІ РјР°СЃСЃРёРІ Рё РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё РІ РґСЂСѓРіРѕР№ РјР°СЃСЃРёРІ
 				comparedStr.push_back(arrOperands.pointer[j] + "," + arrOperands.pointer[j + arrOperands.currSize / 2]);
 				comparedIndex.push_back(numbersString.pointer[j]);
 
 			}
 		}
 
-		comparedStr.push_back(";");// добавляем разграничитель (на этом месте оператор and или or)
+		comparedStr.push_back(";");// РґРѕР±Р°РІР»СЏРµРј СЂР°Р·РіСЂР°РЅРёС‡РёС‚РµР»СЊ (РЅР° СЌС‚РѕРј РјРµСЃС‚Рµ РѕРїРµСЂР°С‚РѕСЂ and РёР»Рё or)
 		comparedIndex.push_back(";");
-		arrOperands = empty;//очищаем массивы
+		arrOperands = empty;//РѕС‡РёС‰Р°РµРј РјР°СЃСЃРёРІС‹
 		numbersString = empty;
 		
 	}
 
 	arr<string> numbersAfterAnd;
 	int counter = 0, right, left;
-	for (int i = 0; i < andOr.currSize; i++) {// проходим по всем операторам
+	for (int i = 0; i < andOr.currSize; i++) {// РїСЂРѕС…РѕРґРёРј РїРѕ РІСЃРµРј РѕРїРµСЂР°С‚РѕСЂР°Рј
 
-		if (andOr.pointer[i] == "AND") {// если это AND
-			for (int j = 1; j < comparedStr.currSize; j++) { // ищем символ ; (на этом месте оператор and)
-				if (counter == i && comparedIndex.pointer[j] == ";") {// если нашли 
+		if (andOr.pointer[i] == "AND") {// РµСЃР»Рё СЌС‚Рѕ AND
+			for (int j = 1; j < comparedStr.currSize; j++) { // РёС‰РµРј СЃРёРјРІРѕР» ; (РЅР° СЌС‚РѕРј РјРµСЃС‚Рµ РѕРїРµСЂР°С‚РѕСЂ and)
+				if (counter == i && comparedIndex.pointer[j] == ";") {// РµСЃР»Рё РЅР°С€Р»Рё 
 
 					left = j ;
-					while (comparedStr.pointer[left - 1] != ";") {// ищем крайний левый элемент относящийся к этому оператору
+					while (comparedStr.pointer[left - 1] != ";") {// РёС‰РµРј РєСЂР°Р№РЅРёР№ Р»РµРІС‹Р№ СЌР»РµРјРµРЅС‚ РѕС‚РЅРѕСЃСЏС‰РёР№СЃСЏ Рє СЌС‚РѕРјСѓ РѕРїРµСЂР°С‚РѕСЂСѓ
 						left--;
 					}
 					right = j;
-					while (comparedStr.pointer[right + 1] != ";") {// ищем крайний правый элемент относящийся к этому оператору
+					while (comparedStr.pointer[right + 1] != ";") {// РёС‰РµРј РєСЂР°Р№РЅРёР№ РїСЂР°РІС‹Р№ СЌР»РµРјРµРЅС‚ РѕС‚РЅРѕСЃСЏС‰РёР№СЃСЏ Рє СЌС‚РѕРјСѓ РѕРїРµСЂР°С‚РѕСЂСѓ
 						right++;
 					}
 
 					for (int k = left; k < j; k++) {
 						for (int z = j + 1; z < right + 1; z++) {
-							if (comparedIndex.pointer[k] == comparedIndex.pointer[z]) {// если левый элемент равен какому нибудь правому то записываем номер строки
+							if (comparedIndex.pointer[k] == comparedIndex.pointer[z]) {// РµСЃР»Рё Р»РµРІС‹Р№ СЌР»РµРјРµРЅС‚ СЂР°РІРµРЅ РєР°РєРѕРјСѓ РЅРёР±СѓРґСЊ РїСЂР°РІРѕРјСѓ С‚Рѕ Р·Р°РїРёСЃС‹РІР°РµРј РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё
 								numbersAfterAnd.push_back(comparedIndex.pointer[k]);
 							}
 						}
@@ -371,22 +353,22 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 	}
 	bool isHere;
 	int size;
-	for (int i = 0; i < andOr.currSize; i++) {// проходим по всем операторам
+	for (int i = 0; i < andOr.currSize; i++) {// РїСЂРѕС…РѕРґРёРј РїРѕ РІСЃРµРј РѕРїРµСЂР°С‚РѕСЂР°Рј
 
-		if (andOr.pointer[i] == "OR") {// если это AND
-			for (int j = 1; j < comparedStr.currSize; j++) {// ищем символ ; (на этом месте оператор or)
-				if (counter == i && comparedIndex.pointer[j] == ";") {// если нашли
+		if (andOr.pointer[i] == "OR") {// РµСЃР»Рё СЌС‚Рѕ AND
+			for (int j = 1; j < comparedStr.currSize; j++) {// РёС‰РµРј СЃРёРјРІРѕР» ; (РЅР° СЌС‚РѕРј РјРµСЃС‚Рµ РѕРїРµСЂР°С‚РѕСЂ or)
+				if (counter == i && comparedIndex.pointer[j] == ";") {// РµСЃР»Рё РЅР°С€Р»Рё
 
 					left = j;
-					while (comparedStr.pointer[left - 1] != ";") {// ищем крайний левый элемент относящийся к этому оператору
+					while (comparedStr.pointer[left - 1] != ";") {// РёС‰РµРј РєСЂР°Р№РЅРёР№ Р»РµРІС‹Р№ СЌР»РµРјРµРЅС‚ РѕС‚РЅРѕСЃСЏС‰РёР№СЃСЏ Рє СЌС‚РѕРјСѓ РѕРїРµСЂР°С‚РѕСЂСѓ
 						left--;
 					}
 					right = j;
-					while (comparedStr.pointer[right + 1] != ";") {// ищем крайний правый элемент относящийся к этому оператору
+					while (comparedStr.pointer[right + 1] != ";") {// РёС‰РµРј РєСЂР°Р№РЅРёР№ РїСЂР°РІС‹Р№ СЌР»РµРјРµРЅС‚ РѕС‚РЅРѕСЃСЏС‰РёР№СЃСЏ Рє СЌС‚РѕРјСѓ РѕРїРµСЂР°С‚РѕСЂСѓ
 						right++;
 					}
 
-					for (int k = left; k < j; k++) {// добавляем номера строк из левой части если их нет в результирующем списке 
+					for (int k = left; k < j; k++) {// РґРѕР±Р°РІР»СЏРµРј РЅРѕРјРµСЂР° СЃС‚СЂРѕРє РёР· Р»РµРІРѕР№ С‡Р°СЃС‚Рё РµСЃР»Рё РёС… РЅРµС‚ РІ СЂРµР·СѓР»СЊС‚РёСЂСѓСЋС‰РµРј СЃРїРёСЃРєРµ 
 						isHere = true;
 						size = numbersAfterAnd.currSize;
 						for (int z = 0; z < size; z++) {
@@ -398,7 +380,7 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 							numbersAfterAnd.push_back(comparedIndex.pointer[k]);
 						}
 					}
-					for (int k = j + 1; k < right + 1; k++) {// добавляем номера строк из правой части если их нет в результирующем списке 
+					for (int k = j + 1; k < right + 1; k++) {// РґРѕР±Р°РІР»СЏРµРј РЅРѕРјРµСЂР° СЃС‚СЂРѕРє РёР· РїСЂР°РІРѕР№ С‡Р°СЃС‚Рё РµСЃР»Рё РёС… РЅРµС‚ РІ СЂРµР·СѓР»СЊС‚РёСЂСѓСЋС‰РµРј СЃРїРёСЃРєРµ 
 						isHere = true;
 						size = numbersAfterAnd.currSize;
 						for (int z = 0; z < size; z++) {
@@ -438,21 +420,21 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 		columsToPrint = splitString(".", arrColumsToPrint.pointer[i]);
 		for (int j = 0; j < columsToPrint.currSize; j++) {
 			for (int k = 0; k < tables.currSize; k++) {
-				if (columsToPrint.pointer[j] == tables.pointer[k]) {// получаем колонки которые вывести нужно
+				if (columsToPrint.pointer[j] == tables.pointer[k]) {// РїРѕР»СѓС‡Р°РµРј РєРѕР»РѕРЅРєРё РєРѕС‚РѕСЂС‹Рµ РІС‹РІРµСЃС‚Рё РЅСѓР¶РЅРѕ
 					correctPath = tablenameToPath(columsToPrint.pointer[j], paths);
 
 					column = columsToPrint.pointer[j + 1];
-					numColumn = column[column.size() - 1] - 48;// получаем из их номера индекс колонки
+					numColumn = column[column.size() - 1] - 48;// РїРѕР»СѓС‡Р°РµРј РёР· РёС… РЅРѕРјРµСЂР° РёРЅРґРµРєСЃ РєРѕР»РѕРЅРєРё
 					
 
 					ifstream file(correctPath);
 					isFirst = true;
-					while (getline(file, line)) {//читаем каждую строку
+					while (getline(file, line)) {//С‡РёС‚Р°РµРј РєР°Р¶РґСѓСЋ СЃС‚СЂРѕРєСѓ
 						if (isFirst) {
-							isFirst = false;// если она первая, то пропускаем её
+							isFirst = false;// РµСЃР»Рё РѕРЅР° РїРµСЂРІР°СЏ, С‚Рѕ РїСЂРѕРїСѓСЃРєР°РµРј РµС‘
 							continue;
 						}
-						splittedLine = splitString(",", line); // сплитим строку по "," и с помощью индекса получаем элемент и номер строчки
+						splittedLine = splitString(",", line); // СЃРїР»РёС‚РёРј СЃС‚СЂРѕРєСѓ РїРѕ "," Рё СЃ РїРѕРјРѕС‰СЊСЋ РёРЅРґРµРєСЃР° РїРѕР»СѓС‡Р°РµРј СЌР»РµРјРµРЅС‚ Рё РЅРѕРјРµСЂ СЃС‚СЂРѕС‡РєРё
 						for (int z = 0; z < numbersAfterAnd.currSize; z++) {
 							if (numbersAfterAnd.pointer[z] == splittedLine.pointer[0]) {
 								
@@ -461,8 +443,8 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 						}
 					}
 					
-					indexResult.push_back(toStr(result.currSize));// получаем индекс разделителя
-					result.push_back(",");// разделяем найденные колонки
+					indexResult.push_back(toStr(result.currSize));// РїРѕР»СѓС‡Р°РµРј РёРЅРґРµРєСЃ СЂР°Р·РґРµР»РёС‚РµР»СЏ
+					result.push_back(",");// СЂР°Р·РґРµР»СЏРµРј РЅР°Р№РґРµРЅРЅС‹Рµ РєРѕР»РѕРЅРєРё
 
 				}
 			}
@@ -471,11 +453,11 @@ void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths,
 	
 	arr<string> leftArr, rightArr;
 
-	for (int i = 0; i < toInt(indexResult.pointer[0]); i++) {//делаем вывод для левой колонки
-		for (int j = toInt(indexResult.pointer[0]) + 1; j < toInt(indexResult.pointer[1]); j++) {//проходит по первой колонке
+	for (int i = 0; i < toInt(indexResult.pointer[0]); i++) {//РґРµР»Р°РµРј РІС‹РІРѕРґ РґР»СЏ Р»РµРІРѕР№ РєРѕР»РѕРЅРєРё
+		for (int j = toInt(indexResult.pointer[0]) + 1; j < toInt(indexResult.pointer[1]); j++) {//РїСЂРѕС…РѕРґРёС‚ РїРѕ РїРµСЂРІРѕР№ РєРѕР»РѕРЅРєРµ
 			leftArr = splitString(",", result.pointer[i]);
 			rightArr = splitString(",", result.pointer[j]);
-			cout << " \t" << leftArr.pointer[0] << "   " << leftArr.pointer[1] << " \t" << rightArr.pointer[0] << "   " << rightArr.pointer[1] << endl; // выводим их декартовое произведение
+			cout << " \t" << leftArr.pointer[0] << "   " << leftArr.pointer[1] << " \t" << rightArr.pointer[0] << "   " << rightArr.pointer[1] << endl; // РІС‹РІРѕРґРёРј РёС… РґРµРєР°СЂС‚РѕРІРѕРµ РїСЂРѕРёР·РІРµРґРµРЅРёРµ
 		}
 	}
 

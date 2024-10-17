@@ -6,22 +6,22 @@ void arr<T> :: expand() {
     newSize = maxSize + 10;
 
     T* newPointer = new T[newSize];
-    for (size_t i = 0; i < currSize; ++i) {//ставим указатель на последний элемент
+    for (size_t i = 0; i < currSize; ++i) {//СЃС‚Р°РІРёРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚
         newPointer[i] = pointer[i];
     }
 
-    delete[] pointer;//переставляем указатель на массив
+    delete[] pointer;//РїРµСЂРµСЃС‚Р°РІР»СЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РјР°СЃСЃРёРІ
     pointer = newPointer;
-    maxSize = newSize;//расширяем размер
+    maxSize = newSize;//СЂР°СЃС€РёСЂСЏРµРј СЂР°Р·РјРµСЂ
 }
 
 template <typename T>
 void arr<T> :: push_back(const T& value) {
-    if (currSize >= maxSize) {//если массив полон увеличиваем размер
+    if (currSize >= maxSize) {//РµСЃР»Рё РјР°СЃСЃРёРІ РїРѕР»РѕРЅ СѓРІРµР»РёС‡РёРІР°РµРј СЂР°Р·РјРµСЂ
         expand();
     }
 
-    pointer[currSize++] = value;// добавить в конец
+    pointer[currSize++] = value;// РґРѕР±Р°РІРёС‚СЊ РІ РєРѕРЅРµС†
 }
 
 template <typename T>
@@ -30,7 +30,7 @@ void arr<T> :: remove(size_t position) {
         throw out_of_range("Out of range. Cannot remove");
     }
 
-    for (size_t i = position; i < currSize - 1; ++i) {// Сдвигаем элементы справа на место элемента
+    for (size_t i = position; i < currSize - 1; ++i) {// РЎРґРІРёРіР°РµРј СЌР»РµРјРµРЅС‚С‹ СЃРїСЂР°РІР° РЅР° РјРµСЃС‚Рѕ СЌР»РµРјРµРЅС‚Р°
         pointer[i] = pointer[i + 1];
     }
     currSize--;
