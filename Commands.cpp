@@ -2,21 +2,19 @@
 
 void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 
-	
-	const int tuple_limit = toInt(readSchema("schema.json").pointer[2]);// Считываем данные с файла json
-	string correctPath = tablenameToPath(table, paths);
+	string correctPath = tablenameToPath(table, paths);// Считываем данные с файла json
 	string nameSchema = readSchema("schema.json").pointer[0];
+	string pathToLock = nameSchema + '/' + table + '/' + table + "_lock.txt";
 
 	string tempString, pk;
-	ifstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");//проверка на блокировку файла
+
+	ifstream lockFile(pathToLock);//проверка на блокировку файла
 	getline(lockFile, tempString);
 	lockFile.close();
 
 	if (tempString == "0") {// если разблокирован файл, то начинаем работу с ним
 		
-		ofstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// блокировка файла
-		lockFile << "1";
-		lockFile.close();
+		lock(pathToLock);
 		string line;
 		ifstream file(correctPath);//читаем первую строчку
 		if (file.is_open()) {
@@ -47,9 +45,7 @@ void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 			cerr << "Incorrect number of elements" << endl;
 		}
 		
-		ofstream unlockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// разблокирование файла
-		unlockFile << "0";
-		unlockFile.close();
+		unlock(pathToLock);
 
 		ofstream pkFileRecord(nameSchema + '/' + table + '/' + table + "_pk_sequence.txt");//инкрементируем pk и записываем в файл
 		pkFileRecord << toInt(pk) + 1;
@@ -65,11 +61,11 @@ void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 }//INSERT INTO table2 VALUES ('zxczxb', 'asdasdg')
 
 void Select(string& fromTable, string SelectData, const arr<string>& paths) {
+	string nameSchema = readSchema("schema.json").pointer[0];
+	string pathToLock, numLock;
 
 	arr<string> allChose = splitString(",", SelectData);// заспличен запрос 
-	arr<string> temp;
-	arr<string> empty;
-	arr<string> splitedChose;
+	arr<string> temp, empty, splitedChose;
 
 	for (int i = 0; i < allChose.currSize; i++) {// на выходе получаем массив таблица , колонка ; след запрос тааблица , колонка 
 		temp = splitString(".", allChose.pointer[i]);
@@ -85,7 +81,7 @@ void Select(string& fromTable, string SelectData, const arr<string>& paths) {
 	for (int i = 0; i < tables.currSize; i++) {
 
 		currentPath = tablenameToPath(tables.pointer[i], paths);//определяем путь до .csv файла по азванию таблицы 
-
+		pathToLock = nameSchema + '/' + tables.pointer[i] + '/' + tables.pointer[i] + "_lock.txt";
 
 		for (int j = 0; j < splitedChose.currSize; j++) {
 			count = 0;
@@ -98,24 +94,37 @@ void Select(string& fromTable, string SelectData, const arr<string>& paths) {
 				continue;
 			}
 
-			ifstream file(currentPath);
+			ifstream lockFile(pathToLock);//проверка на блокировку файла
+			getline(lockFile, numLock);
+			lockFile.close();
 
-			if (file.is_open()) {
-				while (getline(file, stringFromFile)) {// считываем строчку
-					if (file.eof()) {// если конец файла то выходим
-						file.close();
-						break;
-					}
-					if (count == 0) {//если строчка первая в файле то пропускаем
-						count++;
-						continue;
-					}
-					else {//добавляем в массив номер строчки и элемент строчки находящийся в нужной колонке через запятую
-						temp.push_back(splitString(",", stringFromFile).pointer[0] + "," + splitString(",", stringFromFile).pointer[numColumn]);
-					}
+			if (numLock == "0") {
+				lock(pathToLock);
 
+				ifstream file(currentPath);
+
+				if (file.is_open()) {
+					while (getline(file, stringFromFile)) {// считываем строчку
+						if (file.eof()) {// если конец файла то выходим
+							file.close();
+							break;
+						}
+						if (count == 0) {//если строчка первая в файле то пропускаем
+							count++;
+							continue;
+						}
+						else {//добавляем в массив номер строчки и элемент строчки находящийся в нужной колонке через запятую
+							temp.push_back(splitString(",", stringFromFile).pointer[0] + "," + splitString(",", stringFromFile).pointer[numColumn]);
+						}
+
+					}
+					temp.push_back(",");// ставим запятую, что ограничивает данные взятые по 1 запросу
 				}
-				temp.push_back(",");// ставим запятую, что ограничивает данные взятые по 1 запросу
+
+				unlock(pathToLock);
+			}
+			else {
+				cerr << "File" << currentPath << "  already is open" << endl;
 			}
 
 
@@ -146,16 +155,14 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 
 	string nameSchema = readSchema("schema.json").pointer[0];// определяем имя схемы
 	string tempString;
-
-	ifstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// получаем ключ блокировки
+	string pathToLock = nameSchema + '/' + table + '/' + table + "_lock.txt";
+	ifstream lockFile(pathToLock);// получаем ключ блокировки
 	getline(lockFile, tempString);
 	lockFile.close();
 
 	if (tempString == "0") {// если разблокировано, то работаем
 
-		ofstream lockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");//блокируем файл
-		lockFile << "1";
-		lockFile.close();
+		lock(pathToLock);
 
 		arr<string> whereDel = splitString(".", dataFrom);// определяем колонку для проверки
 		string column;
@@ -187,7 +194,7 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 				}
 
 				if (element != filter) {
-					buffer.push_back(stringFromFile);// на линуксе надо сделать с \n !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					buffer.push_back(stringFromFile);
 				}
 
 			}
@@ -206,9 +213,7 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 			file.close();
 		}
 
-		ofstream unlockFile(nameSchema + '/' + table + '/' + table + "_lock.txt");// разблокируем файл
-		unlockFile << "0";
-		unlockFile.close();
+		unlock(pathToLock);
 	}
 	else if (tempString == "1"){// если заблокирован то выходим
 		
@@ -218,248 +223,269 @@ void Delete(const string& table,const string& dataFrom,const string& filter,cons
 
 }
 
+
 void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths, string whereRequest) {
 
-	arr<string> tables = splitString(",", fromTable);
-	arr<string> temp;
+	string nameSchema = readSchema("schema.json").pointer[0];
+	string pathToLock;
 	arr<string> empty;
-	arr<string> andOr;
 
-	string modifiedString = "";
-	temp = splitString(" ", whereRequest);
-	for (int i = 0; i < temp.currSize; i++) {// заменяем AND и OR на символ "*"
-		if (temp.pointer[i] == "AND") {
-			temp.pointer[i] = "*";
-			andOr.push_back("AND");
-		}
-		if (temp.pointer[i] == "OR") {
-			temp.pointer[i] = "*";
-			andOr.push_back("OR");
-		}
-		modifiedString += temp.pointer[i];
-	}
-	// обработка сравнения
-	arr<string> compares = splitString("*", modifiedString);// разбиваем заменённую строку по *
-	// разбиваем на операнды
-	arr<string> indexToCompare, splitToCompare, columns;
-	
-	string column;
-	int numColumn, isFirst;
+	string currentPath, line, column, numLock;
+	arr<string> splitedForOR = splitToArr(whereRequest, "OR");// сплитим фильтр по ИЛИ
 
-	arr<string> arrOperands, splitedStr;
-	string path, line;
-	arr<string>  numbersString;
-	arr<string> comparedStr, comparedIndex;
+	arr<string> splitedForAND, splitedForCompare, splitedForDot;
 
-	string filtr;
-	comparedIndex.push_back(";");
-	comparedStr.push_back(";");
-	for (int i = 0; i < compares.currSize; i++) { // разбиваем подстроки по = 
-		splitToCompare = splitString("=", compares.pointer[i]);
+	bool isFirstStr, isHere;
+	int numColumn;
+	string strFilter;
+	arr<string> tempColums, tempNumsString, splitedLine;
 
-		for (int j = 0; j < splitToCompare.currSize; j++) {// разбиваем подстроки по . для определения table и column  
+	arr<string> NumsStrAftCompFirst, NumsStrAftCompScnd, numsStringAfterAND, resultNums;
 
-			columns = splitString(".", splitToCompare.pointer[j]);
-			for (int k = 0; k < columns.currSize; k++) { // 2 цикла для определения названия таблицы,  совпадает ли оно с заданными после токена FROM
-
-				for (int z = 0; z < tables.currSize; z++) {
-
-					if (columns.pointer[k] == tables.pointer[z]) {// если название таблицы совпадает то  
-						column = columns.pointer[k + 1];
-						numColumn = column[column.size() - 1] - 48;// считаем индекс колонки с нужными данными
-
-						path = tablenameToPath(columns.pointer[k], paths);// определяем путь до файла
-
-						ifstream file(path);
-
-						isFirst = true;
-						while (getline(file, line)) {// читаем строки файла
-							if (isFirst) {
-								isFirst = false; //если строка первая то выходим
-								continue;
-							}
-							splitedStr = splitString(",", line); // сплитим линию
-							numbersString.push_back(splitedStr.pointer[0]); // записываем номер
-
-							arrOperands.push_back(splitedStr.pointer[numColumn]);// записываем данные
-						}
-						isFirst = true;
-
-						file.close();
-
-					}
-				
-				}
-
-			}
-
-		}
-
-				for (int j = 0; j < arrOperands.currSize / 2; j++) { // проверяем условие = для пар элементов выбранных колонок
-			if (arrOperands.pointer[j] == arrOperands.pointer[j + arrOperands.currSize / 2]) {// если они совпадают то добавляем эту пару в массив и номер строки в другой массив
-				comparedStr.push_back(arrOperands.pointer[j] + "," + arrOperands.pointer[j + arrOperands.currSize / 2]);
-				comparedIndex.push_back(numbersString.pointer[j]);
-
-			}
-		}
-
-		comparedStr.push_back(";");// добавляем разграничитель (на этом месте оператор and или or)
-		comparedIndex.push_back(";");
-		arrOperands = empty;//очищаем массивы
-		numbersString = empty;
+	for (int i = 0; i < splitedForOR.currSize; i++) {// каждую часть сплитим по И
+		splitedForAND = splitToArr(splitedForOR.pointer[i], "AND");
 		
-	}
+		for (int j = 0; j < splitedForAND.currSize; j++) { //Каждую часть сплитим по = 
 
-	arr<string> numbersAfterAnd;
-	int counter = 0, right, left;
-	for (int i = 0; i < andOr.currSize; i++) {// проходим по всем операторам
-
-		if (andOr.pointer[i] == "AND") {// если это AND
-			for (int j = 1; j < comparedStr.currSize; j++) { // ищем символ ; (на этом месте оператор and)
-				if (counter == i && comparedIndex.pointer[j] == ";") {// если нашли 
-
-					left = j ;
-					while (comparedStr.pointer[left - 1] != ";") {// ищем крайний левый элемент относящийся к этому оператору
-						left--;
-					}
-					right = j;
-					while (comparedStr.pointer[right + 1] != ";") {// ищем крайний правый элемент относящийся к этому оператору
-						right++;
-					}
-
-					for (int k = left; k < j; k++) {
-						for (int z = j + 1; z < right + 1; z++) {
-							if (comparedIndex.pointer[k] == comparedIndex.pointer[z]) {// если левый элемент равен какому нибудь правому то записываем номер строки
-								numbersAfterAnd.push_back(comparedIndex.pointer[k]);
-							}
+			if (NumsStrAftCompScnd.currSize > 0) { // если выражения слева и справа есть то сравниваем их по И
+				for (int k = 0; k < NumsStrAftCompFirst.currSize; k++) {
+					for (int z = 0; z < NumsStrAftCompScnd.currSize; z++) {
+						if (NumsStrAftCompFirst.pointer[k] == NumsStrAftCompScnd.pointer[z]) {
+							numsStringAfterAND.push_back(NumsStrAftCompFirst.pointer[k]);
 						}
 					}
-
-					
 				}
-				if (comparedStr.pointer[j] == ";") {
-					counter++;
-				}
-
-
+				NumsStrAftCompScnd = empty;// очищаем второй операнд
+				NumsStrAftCompFirst = numsStringAfterAND;// первому присваиваем полученное значение
+				numsStringAfterAND = empty; // очищаем полученное значение
 			}
+			splitedForCompare = splitString("=", splitedForAND.pointer[j]);
 
-		}
-		else {
-			continue;
-		}
-		
-		
-	}
-	bool isHere;
-	int size;
-	for (int i = 0; i < andOr.currSize; i++) {// проходим по всем операторам
+			if (splitedForCompare.pointer[0][0] == '\'') {// если левый элемент начинается с '
 
-		if (andOr.pointer[i] == "OR") {// если это AND
-			for (int j = 1; j < comparedStr.currSize; j++) {// ищем символ ; (на этом месте оператор or)
-				if (counter == i && comparedIndex.pointer[j] == ";") {// если нашли
+				strFilter = splitString("'", splitedForCompare.pointer[0]).pointer[1]; // то получаем фильтр для колонки
 
-					left = j;
-					while (comparedStr.pointer[left - 1] != ";") {// ищем крайний левый элемент относящийся к этому оператору
-						left--;
-					}
-					right = j;
-					while (comparedStr.pointer[right + 1] != ";") {// ищем крайний правый элемент относящийся к этому оператору
-						right++;
-					}
+				splitedForDot = splitString(".", splitedForCompare.pointer[1]); // определяем колонку и таблицу справа от =
 
-					for (int k = left; k < j; k++) {// добавляем номера строк из левой части если их нет в результирующем списке 
-						isHere = true;
-						size = numbersAfterAnd.currSize;
-						for (int z = 0; z < size; z++) {
-							if (comparedIndex.pointer[k] == numbersAfterAnd.pointer[z]) {
-								isHere = false;
-							}
-						}
-						if (isHere) {
-							numbersAfterAnd.push_back(comparedIndex.pointer[k]);
-						}
-					}
-					for (int k = j + 1; k < right + 1; k++) {// добавляем номера строк из правой части если их нет в результирующем списке 
-						isHere = true;
-						size = numbersAfterAnd.currSize;
-						for (int z = 0; z < size; z++) {
-							if (comparedIndex.pointer[k] == numbersAfterAnd.pointer[z]) {
-								isHere = false;
-							}
-						}
-						if (isHere) {
-							numbersAfterAnd.push_back(comparedIndex.pointer[k]);
-						}
-					}
-
-				}
-				if (comparedStr.pointer[j] == ";") {
-					counter++;
-				}
+				currentPath = tablenameToPath(splitedForDot.pointer[0], paths);
+				pathToLock = nameSchema + '/' + splitedForDot.pointer[0] + '/' + splitedForDot.pointer[0] + "_lock.txt";
 
 
-			}
+				column = splitedForDot.pointer[1];
+				numColumn = column[column.size() - 1] - 48;// определение индекса нужной колонки
 
-		}
-		else {
-			continue;
-		}
+				ifstream lockFile(pathToLock);//блокироваки файла
+				getline(lockFile, numLock);
+				lockFile.close();
 
-	}
+				if (numLock == "0") {
+					lock(pathToLock);
 
-	string correctPath;
+					ifstream file(currentPath);
 
-	arr<string> arrColumsToPrint = splitString(",", SelectData);
-	arr<string> columsToPrint;
-	arr<string> splittedLine;
-
-	arr<string> indexResult;
-	arr<string> result;
-	for (int i = 0; i < arrColumsToPrint.currSize; i++) {
-		columsToPrint = splitString(".", arrColumsToPrint.pointer[i]);
-		for (int j = 0; j < columsToPrint.currSize; j++) {
-			for (int k = 0; k < tables.currSize; k++) {
-				if (columsToPrint.pointer[j] == tables.pointer[k]) {// получаем колонки которые вывести нужно
-					correctPath = tablenameToPath(columsToPrint.pointer[j], paths);
-
-					column = columsToPrint.pointer[j + 1];
-					numColumn = column[column.size() - 1] - 48;// получаем из их номера индекс колонки
-					
-
-					ifstream file(correctPath);
-					isFirst = true;
-					while (getline(file, line)) {//читаем каждую строку
-						if (isFirst) {
-							isFirst = false;// если она первая, то пропускаем её
+					isFirstStr = true;
+					while (getline(file, line)) {
+						if (isFirstStr) { // если первая строчка файла то пропускаем
+							isFirstStr = false;
 							continue;
 						}
-						splittedLine = splitString(",", line); // сплитим строку по "," и с помощью индекса получаем элемент и номер строчки
-						for (int z = 0; z < numbersAfterAnd.currSize; z++) {
-							if (numbersAfterAnd.pointer[z] == splittedLine.pointer[0]) {
-								
-								result.push_back(splittedLine.pointer[0] + "  " + splittedLine.pointer[numColumn]);
+						else {  
+							splitedLine = splitString(",", line); // иначе сплитим строчку по ,
+							if (strFilter == splitedLine.pointer[numColumn] && j == 0) { // если первая итерация и фильтр совпадает со значением в колонке, то добавляем номер колонки в первый массив
+								NumsStrAftCompFirst.push_back(splitedLine.pointer[0]);
+							}
+							else if (strFilter == splitedLine.pointer[numColumn] && j != 0) { // если итерация не первая и фильтр совпадает со значением в строке, то добавляем номер колонки во второй массив
+								NumsStrAftCompScnd.push_back(splitedLine.pointer[0]);
 							}
 						}
 					}
-					
-					indexResult.push_back(toStr(result.currSize));// получаем индекс разделителя
-					result.push_back(",");// разделяем найденные колонки
 
+					file.close();
+
+					unlock(pathToLock);
 				}
+				else {
+					cerr << "File" << currentPath << "  already is open" << endl;
+				}
+				
+
 			}
+			else if (splitedForCompare.pointer[1][0] == '\'') { // если правый элемент начинается с ' 
+				strFilter = splitString("'", splitedForCompare.pointer[1]).pointer[1];
+
+				splitedForDot = splitString(".", splitedForCompare.pointer[0]); // то определяем таблицу и колонку левого элемента
+
+				currentPath = tablenameToPath(splitedForDot.pointer[0], paths);
+				pathToLock = nameSchema + '/' + splitedForDot.pointer[0] + '/' + splitedForDot.pointer[0] + "_lock.txt";
+
+				column = splitedForDot.pointer[1];
+				numColumn = column[column.size() - 1] - 48;// определяем индекс нужной колонки
+
+				ifstream lockFile(pathToLock);//блокировка файла
+				getline(lockFile, numLock);
+				lockFile.close();
+				if (numLock == "0") {
+					lock(pathToLock);
+					ifstream file(currentPath);
+
+					isFirstStr = true;
+					while (getline(file, line)) {// если первая строка то пропускаем её
+						if (isFirstStr) {
+							isFirstStr = false;
+							continue;
+						}
+						else { // иначе читаем строку
+							splitedLine = splitString(",", line);
+							if (strFilter == splitedLine.pointer[numColumn] && j == 0) {// если первая итерация и фильтр совпадает со значением в колонке, то добавляем номер колонки в первый массив
+								NumsStrAftCompFirst.push_back(splitedLine.pointer[0]);
+							}
+							else if (strFilter == splitedLine.pointer[numColumn] && j != 0) {// если итерация не первая и фильтр совпадает со значением в строке, то добавляем номер колонки во второй массив
+								NumsStrAftCompScnd.push_back(splitedLine.pointer[0]);
+							}
+						}
+					}
+
+					file.close();
+					unlock(pathToLock);
+				}
+				else {
+					cerr << "File" << currentPath << "  already is open" << endl;
+				}
+				
+			}
+			else { // если оба элемента сравнения содержат названия таблиц и колонок
+
+				for (int k = 0; k < splitedForCompare.currSize; k++) { // сплитим каждую часть по . ( получаем название таблицы и колонки)
+
+
+					splitedForDot = splitString(".", splitedForCompare.pointer[k]);
+
+					currentPath = tablenameToPath(splitedForDot.pointer[0], paths);
+					pathToLock = nameSchema + '/' + splitedForDot.pointer[0] + '/' + splitedForDot.pointer[0] + "_lock.txt";
+
+					column = splitedForDot.pointer[1];
+					numColumn = column[column.size() - 1] - 48; // получаем индекс нужной колонки
+
+					ifstream lockFile(pathToLock);//блокировка файла
+					getline(lockFile, numLock);
+					lockFile.close();
+					if (numLock == "0") {
+						lock(pathToLock);
+
+						ifstream file(currentPath);
+
+						isFirstStr = true;
+						while (getline(file, line)) {// если первая строка то пропускаем
+							if (isFirstStr) {
+								isFirstStr = false;
+								continue;
+							}
+							else { // иначе читаем строку
+								splitedLine = splitString(",", line); // сплитим строчку по , 
+								tempColums.push_back(splitedLine.pointer[numColumn]); //добавляем значение необходимой колонки
+								tempNumsString.push_back(splitedLine.pointer[0]); // добавляем соответственно номер строки в другой массив
+							}
+						}
+
+						file.close();
+						unlock(pathToLock);
+					}
+					else {
+						cerr << "File" << currentPath << "  already is open" << endl;
+					}
+					
+				}
+
+				for (int k = 0; k < tempColums.currSize / 2; k++) { // цикл для проверки соответствия условия равенства
+					if (tempColums.pointer[k] == tempColums.pointer[tempColums.currSize / 2 + k] && j == 0) { // если итерация первая то в первый массив номер строки
+						NumsStrAftCompFirst.push_back(tempNumsString.pointer[k]);
+					}
+					else if (tempColums.pointer[k] == tempColums.pointer[tempColums.currSize / 2 + k] && j != 0) { // если итерация не первая то во второй массив номер строки
+						NumsStrAftCompScnd.push_back(tempNumsString.pointer[k]);
+					}
+				}
+				tempColums = empty; // очищаем массивы
+				tempNumsString = empty;
+				
+			}
+		
+		}
+		
+		for (int j = 0; j < NumsStrAftCompFirst.currSize; j++) { // цикл для проверки условия ИЛИ
+			isHere = true;
+			for (int k = 0; k < resultNums.currSize; k++) { // если находится такой же элемент из второго массива в первом массиве
+				if (NumsStrAftCompFirst.pointer[j] == resultNums.pointer[k])
+					isHere = false; 
+			}
+			if (isHere) { // то он не попадет в новый массив
+				resultNums.push_back(NumsStrAftCompFirst.pointer[j]);
+			}
+			
 		}
 	}
+
+
+
+	arr<string> selectArr = splitString(",", SelectData);
+	arr<string> result, indexResult;
 	
-	arr<string> leftArr, rightArr;
+	for (int i = 0; i < selectArr.currSize; i++) { // цикл для определения элементов для вывода
+		
+		splitedForDot = splitString(".", selectArr.pointer[i]);
 
-	for (int i = 0; i < toInt(indexResult.pointer[0]); i++) {//делаем вывод для левой колонки
-		for (int j = toInt(indexResult.pointer[0]) + 1; j < toInt(indexResult.pointer[1]); j++) {//проходит по первой колонке
-			leftArr = splitString(",", result.pointer[i]);
-			rightArr = splitString(",", result.pointer[j]);
-			cout << " \t" << leftArr.pointer[0] << "   " << leftArr.pointer[1] << " \t" << rightArr.pointer[0] << "   " << rightArr.pointer[1] << endl; // выводим их декартовое произведение
+		currentPath = tablenameToPath(splitedForDot.pointer[0], paths);
+		pathToLock = nameSchema + '/' + splitedForDot.pointer[0] + '/' + splitedForDot.pointer[0] + "_lock.txt";
+
+		column = splitedForDot.pointer[1];
+		numColumn = column[column.size() - 1] - 48; // определяем индекс колонки
+
+		
+		for (int j = 0; j < resultNums.currSize; j++) {
+
+			ifstream lockFile(pathToLock);//блокировка файла
+			getline(lockFile, numLock);
+			lockFile.close();
+			if (numLock == "0") {
+				lock(pathToLock);
+
+				ifstream file(currentPath);
+
+				isFirstStr = true;
+				while (getline(file, line)) {// если первая строка то пропускаем
+					if (isFirstStr) {
+						isFirstStr = false;
+						continue;
+					}
+					else { // иначе сплитим по , 
+						splitedLine = splitString(",", line);
+						if (splitedLine.pointer[0] == resultNums.pointer[j]) { // если номер из условия совпадает с номером текущей строки то добавляем 
+							indexResult.push_back(splitedLine.pointer[0]); // номер строки
+							result.push_back(splitedLine.pointer[numColumn]); // содержимое колонки
+
+							break;// выходим так как строки не повторяются
+						}
+
+					}
+				}
+				file.close();
+
+				unlock(pathToLock);
+			}
+			else {
+				cerr << "File" << currentPath << "  already is open" << endl;
+			}
+			
+		}
+		
+	}
+
+	cout << endl;
+	for (int i = 0; i < indexResult.currSize / 2; i++) {//вывод декартового произведения данных нужных колонок
+		for (int j = indexResult.currSize / 2; j < indexResult.currSize; j++) {
+			cout << indexResult.pointer[i] << "\t" << result.pointer[i] << "\t\t" << indexResult.pointer[j] << "\t" << result.pointer[j] << endl;
 		}
 	}
 
-	//SELECT table2.column1,table2.column2 FROM table1,table2 WHERE table1.column1 = table1.column2 AND table2.column1 = table2.column2
+
+	//SELECT table2.column1,table1.column2 FROM table1,table2 WHERE table1.column1 = table1.column2 AND table2.column1 = table2.column2 AND table1.column1 = '123' OR table2.column2 = '123'
 }

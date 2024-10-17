@@ -46,7 +46,7 @@ void request() {// функция которая определяет запро
 
             string whereRequest = "";
             for (int i = 5; i < commandWords.currSize; i++) {// записываем фильтр в строку
-                whereRequest += commandWords.pointer[i] + " ";
+                whereRequest += commandWords.pointer[i];
             }
             SelectWhere(commandWords.pointer[3], commandWords.pointer[1], path, whereRequest);
         }

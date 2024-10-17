@@ -33,6 +33,10 @@ void request();
 string toStr(const int& value);
 int toInt(const string& str);
 void createDirectory();
+arr<string> splitToArr(const string& input, const string& delimiter);
+
+void unlock(const string& path);
+void lock(const string& path);
 
 
 arr<string> readSchema(const string& filePath);

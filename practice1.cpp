@@ -6,7 +6,7 @@ int main() {
         request();
         cout << endl;
     }
-    
+   
 
     return 0;
 }
