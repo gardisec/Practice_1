@@ -1,18 +1,5 @@
 #include "Head.h"
 
-void lock(const string& path) {
-	ofstream lockFile(path);
-	lockFile << "1";
-	lockFile.close();
-}
-
-void unlock(const string& path) {
-	ofstream lockFile(path);
-	lockFile << "0";
-	lockFile.close();
-}
-
-
 string toStr(const int& value) { // функция переводящая число в строку
 	string result;
 	int digit = value;
@@ -45,36 +32,6 @@ arr<string> splitString(const string value, const string& str) {// функци�
 	}
 	result.push_back(str.substr(begin, end));
 	return result;
-}
-
-arr<string> splitToArr(const string& input, const string& delimiter) {
-	string word;
-	arr<string> output;
-	bool isDelim;
-	int j;
-	for (int i = 0; i < input.size(); ++i) {
-		if (input[i] == delimiter[0]) {
-			isDelim = true;
-			for (j = 0; j < delimiter.size(); ++j) {
-				if (delimiter[j] != input[i + j]) isDelim = false;
-			}
-			if (isDelim) {
-				output.push_back(word);
-				word = "";
-				i += j - 1;
-			}
-			else {
-				word += input[i];
-			}
-		}
-		else {
-			word += input[i];
-		}
-	}
-	if (word != "") {
-		output.push_back(word);
-	}
-	return output;
 }
 
 string tablenameToPath(const string& table, const arr<string>& paths) {// функция которая определяет путь до нужного csv файла по названию таблицы

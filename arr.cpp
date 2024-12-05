@@ -3,12 +3,7 @@
 template <typename T>
 void arr<T> :: expand() {
     size_t newSize;
-    if (maxSize == 0) {
-        newSize = 1;
-    }
-    else {
-        newSize = maxSize * 2;
-    }
+    newSize = maxSize + 10;
 
     T* newPointer = new T[newSize];
     for (size_t i = 0; i < currSize; ++i) {//ставим указатель на последний элемент
