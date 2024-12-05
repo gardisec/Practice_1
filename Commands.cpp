@@ -3,7 +3,7 @@
 void Insert(const string& table, arr<string>& data, const arr<string>& paths) {
 
 	
-	const int tuple_limit = toInt(readSchema("schema.json").pointer[2]);// Считываем данные с файла json
+	const int tuple_limit = toInt(readSchema("schema.json").pointer[2]);// Считываем данные с файла json 123131
 	string correctPath = tablenameToPath(table, paths);
 	string nameSchema = readSchema("schema.json").pointer[0];
 

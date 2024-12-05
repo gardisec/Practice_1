@@ -6,7 +6,7 @@ void arr<T> :: expand() {
     newSize = maxSize + 10;
 
     T* newPointer = new T[newSize];
-    for (size_t i = 0; i < currSize; ++i) {//ставим указатель на последний элемент
+    for (size_t i = 0; i < currSize; ++i) {//ставим указатель на последний элемент123
         newPointer[i] = pointer[i];
     }
 

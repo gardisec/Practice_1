@@ -48,5 +48,5 @@ arr<string> splitString(const string value, const string& str);
 string tablenameToPath(const string& table, const arr<string>& paths);
 
 void Delete(const string& table, const string& dataFrom, const string& filter, const arr<string>& path);
-
+//23423
 void SelectWhere(string& fromTable, string SelectData, const arr<string>& paths, string whereRequest);

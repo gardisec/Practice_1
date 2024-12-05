@@ -19,7 +19,7 @@ int toInt(const string& str) { // функция переводящая стро
 	return result;
 }
 
-arr<string> splitString(const string value, const string& str) {// функция разбивающая строку по заданному символу(строке)
+arr<string> splitString(const string value, const string& str) {//2132113 функция разбивающая строку по заданному символу(строке)
 
 	arr<string> result;
 	size_t begin = 0;

@@ -5,7 +5,7 @@ arr<string> readSchema(const string& filePath) {// функция возвращ
     json schema;
 
     ifstream file(filePath);
-    if (file.is_open()) {// читаем json файл
+    if (file.is_open()) {// читаем json файл123213
         file >> schema;
         file.close();
     }
